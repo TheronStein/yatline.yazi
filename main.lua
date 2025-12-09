@@ -1324,7 +1324,7 @@ return {
 
 		config = nil
 
-		Progress.partial_render = function(self)
+		Progress.redraw = function(self)
 			local summary = cx.tasks.summary
 			if summary.total == 0 then
 				return config_paragraph(self._area)
