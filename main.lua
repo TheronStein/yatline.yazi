@@ -1100,6 +1100,9 @@ return {
 	setup = function(_, config, pre_theme)
 		config = config or {}
 
+		-- Debug logging
+		ya.err("yatline setup called, config type: " .. type(config))
+
 		if config == 0 then
 			config = {
 				show_background = false,
@@ -1182,6 +1185,11 @@ return {
 				left = { section_a = {}, section_b = {}, section_c = {} },
 				right = { section_a = {}, section_b = {}, section_c = {} },
 			}
+
+		-- Debug: log configuration state
+		ya.err(string.format("yatline: display_header=%s, display_status=%s, show_header=%s, show_status=%s",
+			tostring(display_header_line), tostring(display_status_line),
+			tostring(show_line(header_line)), tostring(show_line(status_line))))
 
 		config.theme = (not rt.term.light and config.theme_dark)
 			or (rt.term.light and config.theme_light)
@@ -1348,8 +1356,16 @@ return {
 		if display_header_line then
 			if show_line(header_line) then
 				Header.redraw = function(self)
-					local left_line = config_line(header_line.left, Side.LEFT)
-					local right_line = config_line(header_line.right, Side.RIGHT)
+					local ok, left_line = pcall(config_line, header_line.left, Side.LEFT)
+					if not ok then
+						ya.err("yatline Header left error: " .. tostring(left_line))
+						left_line = ui.Line({})
+					end
+					local ok2, right_line = pcall(config_line, header_line.right, Side.RIGHT)
+					if not ok2 then
+						ya.err("yatline Header right error: " .. tostring(right_line))
+						right_line = ui.Line({})
+					end
 
 					return {
 						config_paragraph(self._area, left_line),
@@ -1373,8 +1389,16 @@ return {
 		if display_status_line then
 			if show_line(status_line) then
 				Status.redraw = function(self)
-					local left_line = config_line(status_line.left, Side.LEFT)
-					local right_line = config_line(status_line.right, Side.RIGHT)
+					local ok, left_line = pcall(config_line, status_line.left, Side.LEFT)
+					if not ok then
+						ya.err("yatline Status left error: " .. tostring(left_line))
+						left_line = ui.Line({})
+					end
+					local ok2, right_line = pcall(config_line, status_line.right, Side.RIGHT)
+					if not ok2 then
+						ya.err("yatline Status right error: " .. tostring(right_line))
+						right_line = ui.Line({})
+					end
 					local right_width = right_line:width()
 
 					return {
