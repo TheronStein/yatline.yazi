@@ -70,6 +70,53 @@ local function to_ui_style(style_table)
 	return s
 end
 
+--- Formats a tab name based on the configured format.
+--- @param tab table The tab object from cx.tabs[i]
+--- @param index number The tab index (1-based)
+--- @return string name The formatted tab name
+local function format_tab_name(tab, index)
+	if not tab_name_format then
+		return tab.name
+	end
+
+	-- If it's a function, call it with the tab and index
+	if type(tab_name_format) == "function" then
+		local ok, result = pcall(tab_name_format, tab, index)
+		if ok and result then
+			return tostring(result)
+		end
+		return tab.name
+	end
+
+	-- Handle string format types
+	if tab_name_format == "default" then
+		return tab.name
+	elseif tab_name_format == "basename" then
+		-- Extract just the last path component
+		local cwd = tostring(tab.cwd)
+		return cwd:match("([^/]+)/?$") or tab.name
+	elseif tab_name_format == "index" then
+		-- Just show the index number
+		return tostring(index)
+	elseif tab_name_format == "index:basename" then
+		-- Show index followed by basename
+		local cwd = tostring(tab.cwd)
+		local basename = cwd:match("([^/]+)/?$") or tab.name
+		return tostring(index) .. ":" .. basename
+	elseif tab_name_format == "project" then
+		-- Try to detect project name from git, fallback to basename
+		local cwd = tostring(tab.cwd)
+		-- Check for common project indicators in the path
+		-- Look for .git directory name in ancestors (simplified heuristic)
+		local basename = cwd:match("([^/]+)/?$") or tab.name
+		-- For now, just use basename (git detection would require shell calls)
+		return basename
+	end
+
+	-- Unknown format, use default
+	return tab.name
+end
+
 local permissions_t_fg
 local permissions_r_fg
 local permissions_w_fg
@@ -77,6 +124,7 @@ local permissions_x_fg
 local permissions_s_fg
 
 local tab_width
+local tab_name_format
 
 local selected_icon
 local copied_icon
@@ -618,9 +666,10 @@ function Yatline.line.get:tabs(side)
 	end
 
 	for i = 1, tabs do
+		local tab_display_name = format_tab_name(cx.tabs[i], i)
 		local text = i
 		if tab_width > 2 then
-			text = ui.truncate(text .. " " .. cx.tabs[i].name, { max = tab_width })
+			text = ui.truncate(text .. " " .. tab_display_name, { max = tab_width })
 		end
 
 		separator_style = { bg = nil, fg = nil }
@@ -1180,6 +1229,7 @@ return {
 		end
 
 		tab_width = config.tab_width or 20
+		tab_name_format = config.tab_name_format -- nil means use default (tab.name)
 
 		local component_positions = config.component_positions or { "header", "tabs", "tab", "status" }
 

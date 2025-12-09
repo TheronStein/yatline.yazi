@@ -224,10 +224,39 @@ You can add custom text:
 | `display_header_line` | boolean | `true` | Show header line |
 | `display_status_line` | boolean | `true` | Show status line |
 | `tab_width` | number | `20` | Max width for tab names |
+| `tab_name_format` | string/function | `nil` | Tab name display format (see below) |
 | `component_positions` | table | `{"header", "tabs", "tab", "status"}` | Layout order |
 | `section_separator` | table | `{ open = "", close = "" }` | Section separators |
 | `part_separator` | table | `{ open = "", close = "" }` | Part separators |
 | `inverse_separator` | table | `{ open = "", close = "" }` | Inverse separators |
+
+### Tab Name Format
+
+Control how tab names are displayed in the tab bar:
+
+| Value | Description |
+|-------|-------------|
+| `nil` or `"default"` | Use Yazi's default tab name |
+| `"basename"` | Show only the directory basename |
+| `"index"` | Show only the tab index number |
+| `"index:basename"` | Show index followed by basename (e.g., `1:projects`) |
+| `function(tab, index)` | Custom function for full control |
+
+**Custom function example:**
+
+```lua
+require("yatline"):setup({
+    tab_name_format = function(tab, index)
+        local cwd = tostring(tab.cwd)
+        -- Show a custom icon based on path
+        if cwd:match("/projects/") then
+            return "" .. " " .. cwd:match("([^/]+)/?$")
+        end
+        return tab.name
+    end,
+    -- ... other config
+})
+```
 
 ## Sections
 
