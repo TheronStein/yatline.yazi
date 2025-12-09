@@ -59,6 +59,17 @@ local style_a_normal_bg
 local style_a_select_bg
 local style_a_un_set_bg
 
+--- Converts a style table { fg = "...", bg = "..." } to a ui.Style object
+--- @param style_table table The style table with fg and bg keys
+--- @return Style The ui.Style object
+local function to_ui_style(style_table)
+	if not style_table then return ui.Style() end
+	local s = ui.Style()
+	if style_table.fg then s = s:fg(style_table.fg) end
+	if style_table.bg then s = s:bg(style_table.bg) end
+	return s
+end
+
 local permissions_t_fg
 local permissions_r_fg
 local permissions_w_fg
@@ -118,11 +129,11 @@ end
 --- @see Style To see how to style, in Yazi's documentation.
 local function set_component_style(component, component_type)
 	if component_type == ComponentType.A then
-		component:style(style_a):bold()
+		component:style(to_ui_style(style_a)):bold()
 	elseif component_type == ComponentType.B then
-		component:style(style_b)
+		component:style(to_ui_style(style_b))
 	else
-		component:style(style_c)
+		component:style(to_ui_style(style_c))
 	end
 end
 
@@ -154,8 +165,8 @@ local function connect_separator(component, side, separator_type)
 		close = ui.Span(part_separator_close)
 	end
 
-	open:style(separator_style)
-	close:style(separator_style)
+	open:style(to_ui_style(separator_style))
+	close:style(to_ui_style(separator_style))
 
 	if side == Side.LEFT then
 		return ui.Line({ component, close })
@@ -635,7 +646,7 @@ function Yatline.line.get:tabs(side)
 			if show_background then
 				set_component_style(span, ComponentType.C)
 			else
-				span:style({ fg = style_c.fg })
+				span:style(ui.Style():fg(style_c.fg))
 			end
 
 			if i == cx.tabs.idx - 1 then
@@ -667,8 +678,8 @@ function Yatline.line.get:tabs(side)
 					close = ui.Span(part_separator_close)
 				end
 
-				open:style(separator_style)
-				close:style(separator_style)
+				open:style(to_ui_style(separator_style))
+				close:style(to_ui_style(separator_style))
 
 				if in_side == Side.LEFT then
 					lines[#lines + 1] = ui.Line({ span, close })
@@ -1090,9 +1101,18 @@ end
 local function config_paragraph(area, line)
 	local line_array = { line } or {}
 	if show_background then
-		return ui.Text(line_array):area(area):style(style_c)
+		return ui.Text(line_array):area(area):style(to_ui_style(style_c))
 	else
 		return ui.Text(line_array):area(area)
+	end
+end
+
+-- Debug file logging helper
+local function debug_log(msg)
+	local f = io.open("/tmp/yatline-debug.log", "a")
+	if f then
+		f:write(os.date("%Y-%m-%d %H:%M:%S") .. " - " .. tostring(msg) .. "\n")
+		f:close()
 	end
 end
 
@@ -1101,7 +1121,7 @@ return {
 		config = config or {}
 
 		-- Debug logging
-		ya.err("yatline setup called, config type: " .. type(config))
+		debug_log("yatline setup called, config type: " .. type(config))
 
 		if config == 0 then
 			config = {
@@ -1187,7 +1207,7 @@ return {
 			}
 
 		-- Debug: log configuration state
-		ya.err(string.format("yatline: display_header=%s, display_status=%s, show_header=%s, show_status=%s",
+		debug_log(string.format("yatline: display_header=%s, display_status=%s, show_header=%s, show_status=%s",
 			tostring(display_header_line), tostring(display_status_line),
 			tostring(show_line(header_line)), tostring(show_line(status_line))))
 
@@ -1356,14 +1376,15 @@ return {
 		if display_header_line then
 			if show_line(header_line) then
 				Header.redraw = function(self)
+					debug_log("Header.redraw called")
 					local ok, left_line = pcall(config_line, header_line.left, Side.LEFT)
 					if not ok then
-						ya.err("yatline Header left error: " .. tostring(left_line))
+						debug_log("yatline Header left error: " .. tostring(left_line))
 						left_line = ui.Line({})
 					end
 					local ok2, right_line = pcall(config_line, header_line.right, Side.RIGHT)
 					if not ok2 then
-						ya.err("yatline Header right error: " .. tostring(right_line))
+						debug_log("yatline Header right error: " .. tostring(right_line))
 						right_line = ui.Line({})
 					end
 
@@ -1389,14 +1410,15 @@ return {
 		if display_status_line then
 			if show_line(status_line) then
 				Status.redraw = function(self)
+					debug_log("Status.redraw called")
 					local ok, left_line = pcall(config_line, status_line.left, Side.LEFT)
 					if not ok then
-						ya.err("yatline Status left error: " .. tostring(left_line))
+						debug_log("yatline Status left error: " .. tostring(left_line))
 						left_line = ui.Line({})
 					end
 					local ok2, right_line = pcall(config_line, status_line.right, Side.RIGHT)
 					if not ok2 then
-						ya.err("yatline Status right error: " .. tostring(right_line))
+						debug_log("yatline Status right error: " .. tostring(right_line))
 						right_line = ui.Line({})
 					end
 					local right_width = right_line:width()
